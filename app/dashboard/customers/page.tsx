@@ -9,20 +9,19 @@ import { Suspense } from 'react';
 import { fetchCustomersPages } from '@/app/lib/data';
 import { Metadata } from 'next';
 
+// No envolvemos más `searchParams` en promesas
 export const metadata: Metadata = {
   title: 'Customers',
 };
 
-// Cambia esto para envolverlo en una promesa
 export default async function Page({
   searchParams,
 }: {
-  searchParams?: Promise<{ query?: string; page?: string }> | { query?: string; page?: string };
+  searchParams?: { query?: string; page?: string }; // Eliminamos la promesa aquí
 }) {
-  // Ahora puedes acceder a searchParams normalmente
-  const resolvedSearchParams = await searchParams;  // Resolviendo la promesa si es necesario
-  const query = resolvedSearchParams?.query || '';
-  const currentPage = Number(resolvedSearchParams?.page) || 1;
+  // Obtención de los parámetros de la URL
+  const query = searchParams?.query || '';
+  const currentPage = Number(searchParams?.page) || 1;
 
   return (
     <div className="w-full">
