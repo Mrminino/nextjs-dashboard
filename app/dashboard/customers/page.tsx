@@ -8,19 +8,21 @@ import { Suspense } from 'react';
 import { fetchCustomersPages } from '@/app/lib/data';
 import { Metadata } from 'next';
 
+
 export const metadata: Metadata = {
   title: 'Customers',
 };
 
-export default async function Page(props: {
-  searchParams?: {
-    query?: string;
-    page?: string;
+type PageProps = {
+    searchParams?: {
+      query?: string;
+      page?: string;
+    };
   };
-}) {
-    const query = props.searchParams?.query || '';
-    const currentPage = Number(props.searchParams?.page) || 1;
- 
+
+  export default async function Page({ searchParams }: PageProps) {
+    const query = searchParams?.query ?? '';
+    const currentPage = Number(searchParams?.page) || 1;
 
   return (
     <div className="w-full">
