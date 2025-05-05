@@ -1,3 +1,4 @@
+// app/dashboard/customers/page.tsx
 import Pagination from '@/app/ui/customers/pagination';
 import Search from '@/app/ui/search';
 import Table from '@/app/ui/customers/table';
