@@ -8,21 +8,20 @@ import { Suspense } from 'react';
 import { fetchCustomersPages } from '@/app/lib/data';
 import { Metadata } from 'next';
 
-
 export const metadata: Metadata = {
   title: 'Customers',
 };
 
-type PageProps = {
-    searchParams?: {
-      query?: string;
-      page?: string;
-    };
+interface PageProps {
+  searchParams?: {
+    query?: string;
+    page?: string;
   };
+}
 
-  export default async function Page({ searchParams }: PageProps) {
-    const query = searchParams?.query ?? '';
-    const currentPage = Number(searchParams?.page) || 1;
+export default async function Page({ searchParams }: PageProps) {
+  const query = searchParams?.query || '';
+  const currentPage = Number(searchParams?.page) || 1;
 
   return (
     <div className="w-full">
@@ -35,11 +34,11 @@ type PageProps = {
         <CreateCustomer />
       </div>
 
-      <Suspense key={query + currentPage} >
-      <Table query={query} currentPage={currentPage} />
-    </Suspense>
+      <Suspense key={query + currentPage}>
+        <Table query={query} currentPage={currentPage} />
+      </Suspense>
 
-    <Pagination totalPages={await fetchCustomersPages(query)} />
+      <Pagination totalPages={await fetchCustomersPages(query)} />
     </div>
   );
 }
