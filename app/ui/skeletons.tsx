@@ -216,3 +216,4 @@ export function InvoicesTableSkeleton() {
     </div>
   );
 }
+

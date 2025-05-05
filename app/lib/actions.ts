@@ -7,6 +7,9 @@ import { redirect } from 'next/navigation';
 import postgres from 'postgres';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
+import fs from 'fs';
+import path from 'path';
+import { randomUUID } from 'crypto';
 
 export async function authenticate(
     prevState: string | undefined,
@@ -103,6 +106,7 @@ export type State = {
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
  
 // ...
+
  
 export async function updateInvoice(id: string, formData: FormData) {
   const { customerId, amount, status } = UpdateInvoice.parse({
@@ -133,3 +137,142 @@ export async function deleteInvoice(id: string) {
     await sql`DELETE FROM invoices WHERE id = ${id}`;
     revalidatePath('/dashboard/invoices');
   }
+
+  const customerSchema = z.object({
+    name: z.string().min(1, 'Name is required'),
+    email: z.string().email('Invalid email'),
+    image_url: z.string().url('Invalid image URL').optional().or(z.literal('')),
+  });
+  
+  export type CustomerFormState = {
+    errors?: { name?: string[]; email?: string[]; image_url?: string[] };
+    message?: string | null;
+  };
+  
+  export async function createCustomer(
+    prevState: CustomerFormState,
+    formData: FormData
+  ): Promise<CustomerFormState> {
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const image = formData.get('image') as File | null;
+  
+    if (!name || !email) {
+      return {
+        errors: {
+          name: !name ? ['Name is required'] : undefined,
+          email: !email ? ['Email is required'] : undefined,
+        },
+        message: 'Invalid data.',
+      };
+    }
+  
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return {
+        errors: { email: ['Invalid email address'] },
+        message: 'Invalid data.',
+      };
+    }
+  
+    let imageUrl: string | null = null;
+  
+    if (image && image.size > 0) {
+      const imageBuffer = Buffer.from(await image.arrayBuffer());
+      const fileExt = path.extname(image.name);
+      const fileName = `${randomUUID()}${fileExt}`;
+      const dir = path.join(process.cwd(), 'public', 'customers');
+      const filePath = path.join(dir, fileName);
+  
+      try {
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(filePath, imageBuffer);
+        imageUrl = `/customers/${fileName}`;
+      } catch (err) {
+        console.error('Error saving image:', err);
+        return { message: 'Error saving image.' };
+      }
+    }
+  
+    try {
+      await sql`
+        INSERT INTO customers (name, email, image_url)
+        VALUES (${name}, ${email}, ${imageUrl})
+      `;
+      return { message: 'Customer created successfully!' };
+    } catch (err) {
+      console.error('Database Error:', err);
+      return { message: 'Failed to create customer.' };
+    }
+  }
+  
+  
+  export async function updateCustomer(id: string, formData: FormData): Promise<CustomerFormState> {
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const image = formData.get('image_url') as File | null;
+  
+    if (!name || !email) {
+      return {
+        errors: {
+          name: !name ? ['Name is required'] : undefined,
+          email: !email ? ['Email is required'] : undefined,
+        },
+        message: 'Invalid data.',
+      };
+    }
+  
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return {
+        errors: { email: ['Invalid email address'] },
+        message: 'Invalid data.',
+      };
+    }
+  
+    let imageUrl: string | null = null;
+  
+    // Guardar imagen si viene un archivo nuevo
+    if (image && typeof image !== 'string' && image.size > 0) {
+      const imageBuffer = Buffer.from(await image.arrayBuffer());
+      const fileExt = path.extname(image.name);
+      const fileName = `${randomUUID()}${fileExt}`;
+      const dir = path.join(process.cwd(), 'public', 'customers');
+      const filePath = path.join(dir, fileName);
+  
+      try {
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(filePath, imageBuffer);
+        imageUrl = `/customers/${fileName}`;
+      } catch (err) {
+        console.error('Error saving image:', err);
+        return { message: 'Error saving image.' };
+      }
+    }
+  
+    try {
+      await sql`
+        UPDATE customers
+        SET name = ${name}, email = ${email},
+        image_url = ${imageUrl ?? null}
+        WHERE id = ${id}
+      `;
+    } catch (err) {
+      console.error('Database Error:', err);
+      return { message: 'Failed to update customer.' };
+    }
+  
+    revalidatePath('/dashboard/customers');
+    redirect('/dashboard/customers');
+  }
+  
+  // Eliminar Customer
+  export async function deleteCustomer(id: string) {
+    await sql`DELETE FROM customers WHERE id = ${id}`;
+    revalidatePath('/dashboard/customers');
+  }
+  
